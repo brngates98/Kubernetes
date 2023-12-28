@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-proxy
+  namespace: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-proxy
+  template:
+    metadata:
+      labels:
+        app: nginx-proxy
+    spec:
+      containers:
+      - name: nginx-proxy
+        image: ubuntu/nginx:edge
+        volumeMounts:
+        - name: nginx-config-volume
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: nginx-config-volume
+          mountPath: /etc/ssl/certs/sslcert.pem
+          subPath: sslcert.pem
+        - name: nginx-config-volume
+          mountPath: /etc/ssl/private/sslkey.key
+          subPath: sslkey.key
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+            - key: nginx
+              path: nginx.conf
+            - key: sslcert
+              path: sslcert.pem
+            - key: sslkey
+              path: sslkey.key
+          name: nginx-config
+        name: nginx-config-volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: nginx
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: nginx-proxy
+  ports:
+    - name: nginx
+      port: 80
+      protocol: TCP
+      targetPort: 80
+    - name: nginxssl
+      port: 443
+      protocol: TCP
+      targetPort: 443
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: nginx
+data:
+  nginx: |+
+    user www-data;
+    worker_processes auto;
+    pid /run/nginx.pid;
+  
+    events { }
+    http {
+    #begin http required
+    server {
+        listen 443 ssl;
+        ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem; # managed by Certbot
+        ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem; # managed by Certbot
+        server_name dynmap.example.com;
+        location / {
+                proxy_pass http://192.168.1.69:8123;
+                proxy_set_header X-Real_IP $remote_addr;
+        }
+}
+    server {
+        listen 80;
+        server_name dynmap.example.com;
+        return 302 https://$host$request_uri;
+}
+
+    #end http required
+    }
+  sslcert: |+
+    -----BEGIN CERTIFICATE-----
+
+    -----END CERTIFICATE-----
+  
+    -----BEGIN CERTIFICATE-----
+ 
+    -----END CERTIFICATE-----
+  
+    -----BEGIN CERTIFICATE-----
+
+    -----END CERTIFICATE-----
+  
+    -----BEGIN CERTIFICATE-----
+    -----END CERTIFICATE-----
+  sslkey: |+
+    -----BEGIN PRIVATE KEY-----
+    -----END PRIVATE KEY-----
