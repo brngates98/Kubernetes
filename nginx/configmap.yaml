@@ -1,0 +1,51 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: nginx
+data:
+  nginx: |+
+    user www-data;
+    worker_processes auto;
+    pid /run/nginx.pid;
+  
+    events { }
+    http {
+    #begin http required
+    server {
+        listen 443 ssl;
+        ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem; # managed by Certbot
+        ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem; # managed by Certbot
+        server_name dynmap.example.com;
+        location / {
+                proxy_pass http://192.168.1.69:8123;
+                proxy_set_header X-Real_IP $remote_addr;
+        }
+}
+    server {
+        listen 80;
+        server_name dynmap.example.com;
+        return 302 https://$host$request_uri;
+}
+
+    #end http required
+    }
+  sslcert: |+
+    -----BEGIN CERTIFICATE-----
+
+    -----END CERTIFICATE-----
+  
+    -----BEGIN CERTIFICATE-----
+ 
+    -----END CERTIFICATE-----
+  
+    -----BEGIN CERTIFICATE-----
+
+    -----END CERTIFICATE-----
+  
+    -----BEGIN CERTIFICATE-----
+    -----END CERTIFICATE-----
+  sslkey: |+
+    -----BEGIN PRIVATE KEY-----
+    -----END PRIVATE KEY-----
