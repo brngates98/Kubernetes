@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-proxy
+  namespace: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-proxy
+  template:
+    metadata:
+      labels:
+        app: nginx-proxy
+    spec:
+      containers:
+      - name: nginx-proxy
+        image: ubuntu/nginx:edge
+        volumeMounts:
+        - name: nginx-config-volume
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: nginx-config-volume
+          mountPath: /etc/ssl/certs/sslcert.pem
+          subPath: sslcert.pem
+        - name: nginx-config-volume
+          mountPath: /etc/ssl/private/sslkey.key
+          subPath: sslkey.key
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+            - key: nginx
+              path: nginx.conf
+            - key: sslcert
+              path: sslcert.pem
+            - key: sslkey
+              path: sslkey.key
+          name: nginx-config
+        name: nginx-config-volume
